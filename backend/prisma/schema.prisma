@@ -1,0 +1,148 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_URL")
+  extensions = [vector]
+}
+
+enum EstadoComanda {
+  RECIBIDO
+  EN_PREPARACION
+  LISTO_PARA_SERVIR
+  ENTREGADO
+  INCIDENCIA
+  PAGADO
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TARJETA
+  QR_DIGITAL
+}
+
+enum CategoriaMenu {
+  ENTRADA
+  PLATO_PRINCIPAL
+  POSTRE
+  BEBIDA
+  SNACK
+}
+
+enum RolUsuario {
+  ADMIN
+  MOZO
+  COCINA
+}
+
+model Mesa {
+  id             String    @id @default(uuid())
+  numero         Int       @unique
+  capacidad      Int
+  activa         Boolean   @default(true)
+  tokenQr        String    @unique @default(uuid())
+  creadoEn       DateTime  @default(now())
+  comandas       Comanda[]
+  mozoAsignadoId String?
+  mozoAsignado   Usuario?  @relation("MesaMozo", fields: [mozoAsignadoId], references: [id])
+
+  @@map("mesas")
+}
+
+model Usuario {
+  id             String     @id @default(uuid())
+  nombre         String
+  email          String     @unique
+  clave          String
+  rol            RolUsuario
+  activo         Boolean    @default(true)
+  creadoEn       DateTime   @default(now())
+  comandas       Comanda[]
+  mesasAsignadas Mesa[]     @relation("MesaMozo")
+
+  @@map("usuarios")
+}
+
+model ItemMenu {
+  id            String        @id @default(uuid())
+  nombre        String
+  descripcion   String
+  precio        Decimal       @db.Decimal(10, 2)
+  categoria     CategoriaMenu
+  disponible    Boolean       @default(true)
+  imagenUrl     String?
+  tiempoPreparacion Int
+  creadoEn      DateTime      @default(now())
+  actualizadoEn DateTime      @updatedAt
+  items         ItemComanda[]
+
+  @@map("items_menu")
+}
+
+model Comanda {
+  id            String        @id @default(uuid())
+  mesaId        String
+  mozoId        String
+  estado        EstadoComanda @default(RECIBIDO)
+  observaciones String?
+  total         Decimal       @db.Decimal(10, 2) @default(0)
+  creadoEn      DateTime      @default(now())
+  actualizadoEn DateTime      @updatedAt
+  mesa          Mesa          @relation(fields: [mesaId], references: [id])
+  mozo          Usuario       @relation(fields: [mozoId], references: [id])
+  items         ItemComanda[]
+  pago          Pago?
+
+  @@map("comandas")
+}
+
+model ItemComanda {
+  id          String   @id @default(uuid())
+  comandaId   String
+  itemMenuId  String
+  cantidad    Int
+  notas       String?
+  precioUnitario Decimal @db.Decimal(10, 2)
+  comanda     Comanda  @relation(fields: [comandaId], references: [id], onDelete: Cascade)
+  itemMenu    ItemMenu @relation(fields: [itemMenuId], references: [id])
+
+  @@map("items_comanda")
+}
+
+model Pago {
+  id          String     @id @default(uuid())
+  comandaId   String     @unique
+  monto       Decimal    @db.Decimal(10, 2)
+  metodo      MetodoPago
+  referencia  String?
+  creadoEn    DateTime   @default(now())
+  comanda     Comanda    @relation(fields: [comandaId], references: [id])
+
+  @@map("pagos")
+}
+
+model HistorialIa {
+  id            String   @id @default(uuid())
+  sesionQr      String
+  consulta      String
+  respuesta     String
+  tokensUsados  Int
+  contexto      String
+  creadoEn      DateTime @default(now())
+
+  @@map("historial_ia")
+}
+
+model EmbeddingMenu {
+  id          String                    @id @default(uuid())
+  contenido   String
+  categoria   CategoriaMenu
+  embedding   Unsupported("vector(768)")
+  creadoEn    DateTime                  @default(now())
+
+  @@map("embeddings_menu")
+}
