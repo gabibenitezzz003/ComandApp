@@ -81,4 +81,4 @@ npm run dev -- --port 3000
 [GitHub Profile](https://github.com/gabibenitezzz003)
 
 ---
-© 2024 ComandApp. Todos los derechos reservados.
+© 2026 ComandApp. Todos los derechos reservados.
