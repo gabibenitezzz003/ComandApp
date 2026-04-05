@@ -5,7 +5,7 @@ const esquemaVariables = z.object({
   PUERTO: z.string().transform(Number).pipe(z.number().int().positive()),
   JWT_SECRETO: z.string().min(10),
   GEMINI_API_KEY: z.string().min(1),
-  CORS_ORIGEN: z.string().url(),
+  CORS_ORIGEN: z.string().transform((str) => str.split(",")),
   TOKENS_MAXIMO_SESION: z.string().transform(Number).pipe(z.number().int().positive()).default("5000"),
 });
 

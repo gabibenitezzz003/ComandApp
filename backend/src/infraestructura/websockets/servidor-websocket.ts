@@ -6,7 +6,7 @@ import { Comanda } from "../../dominio/entidades/comanda";
 export class ServidorWebSocketImpl implements ServicioWebSocket {
   private io: Server;
 
-  constructor(servidorHttp: ServidorHttp, origenCors: string) {
+  constructor(servidorHttp: ServidorHttp, origenCors: string | string[]) {
     this.io = new Server(servidorHttp, {
       cors: {
         origin: origenCors,
