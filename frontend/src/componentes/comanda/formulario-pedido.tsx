@@ -15,6 +15,23 @@ export function FormularioPedido({ mesaId, mozoId, alEnviar }: PropiedadesFormul
   const { items, observaciones, establecerObservaciones, actualizarCantidad, eliminarItem, vaciarCarrito, obtenerTotal } = usarEstadoCarrito();
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sugerenciaIa, setSugerenciaIa] = useState<string | null>(null);
+  const [cargandoIa, setCargandoIa] = useState(false);
+
+  const pedirSugerenciaCopilot = async () => {
+    if (items.length === 0) return;
+    setCargandoIa(true);
+    setSugerenciaIa(null);
+    try {
+      const nombresPlatos = items.map(i => i.itemMenu.nombre);
+      const res = await clienteApi.post<{respuesta: string}>("/ia/upsell", { carrito: nombresPlatos });
+      setSugerenciaIa(res.respuesta);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setCargandoIa(false);
+    }
+  };
 
   const manejarEnvio = async () => {
     if (items.length === 0) return;
@@ -137,6 +154,38 @@ export function FormularioPedido({ mesaId, mozoId, alEnviar }: PropiedadesFormul
           </div>
         ))}
       </div>
+
+      {/* Copilot IA Upselling Button */}
+      {items.length > 0 && (
+        <div style={{ marginTop: "16px", marginBottom: "16px" }}>
+          {!sugerenciaIa && !cargandoIa && (
+             <button
+              onClick={pedirSugerenciaCopilot}
+              style={{
+                width: "100%", padding: "10px", borderRadius: "12px", background: "linear-gradient(90deg, #312e81, #4c1d95)",
+                border: "1px solid #7c3aed", color: "#ddd6fe", fontSize: "13px", fontWeight: 700, display: "flex", justifyContent: "center", alignItems: "center", gap: "8px", cursor: "pointer", transition: "all 0.2s"
+              }}>
+              ✨ SUGERENCIAS IA (Upselling)
+            </button>
+          )}
+
+          {cargandoIa && (
+            <div style={{ width: "100%", padding: "12px", borderRadius: "12px", background: "rgba(124,58,237,0.1)", border: "1px dashed #7c3aed", color: "#a78bfa", fontSize: "13px", textAlign: "center", animation: "pulse 1.5s infinite" }}>
+              Analizando carrito para upselling... ✨
+            </div>
+          )}
+
+          {sugerenciaIa && !cargandoIa && (
+            <div style={{ padding: "14px", borderRadius: "12px", background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.4)", position: "relative" }}>
+              <button 
+                onClick={() => setSugerenciaIa(null)} 
+                style={{ position: "absolute", top: "8px", right: "8px", background: "none", border: "none", color: "#a78bfa", cursor: "pointer" }}>✕</button>
+              <div style={{ fontSize: "11px", textTransform: "uppercase", color: "#c4b5fd", fontWeight: 800, marginBottom: "6px" }}>🤖 Copilot IA sugiere ofrecer:</div>
+              <div style={{ fontSize: "13px", color: "#f5f3ff", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{sugerenciaIa}</div>
+            </div>
+          )}
+        </div>
+      )}
 
       <textarea
         className="input-premium text-sm"

@@ -60,6 +60,39 @@ export class ServicioIaGemini implements ServicioIa {
     };
   }
 
+  async sugerirUpsell(carrito: string[]): Promise<RespuestaIa> {
+    if (this.chunksCacheados.length === 0) {
+      await this.indexarMenu();
+    }
+
+    const prompt = [
+      "Eres un asistente experto en ventas para mozos en un restaurante de categoría.",
+      "El mozo está tomando un pedido. El carrito actual del cliente tiene estos ítems:",
+      carrito.map(c => `- ${c}`).join("\n"),
+      "",
+      "Basado en nuestro menú:",
+      this.chunksCacheados.join("\n\n"),
+      "",
+      "Sugiere 2 opciones concretas y rápidas para venderle ALGO MÁS (upselling o cross-selling), por ejemplo, si tienen carnes ofreceles vino, si no tienen postres ofreceles, si tienen niños bebida infantil, etc.",
+      "Sé directo. Da el nombre del plato, la justificación de por qué combina perfecto y el precio.",
+      "Mantén la respuesta corta y en un formato que el mozo pueda leer rápido."
+    ].join("\n");
+
+    const modelo = this.clienteGemini.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig: {
+        temperature: 0.5,
+        maxOutputTokens: 250,
+      },
+    });
+
+    const resultado = await modelo.generateContent(prompt);
+    return {
+      respuesta: resultado.response.text(),
+      tokensUsados: resultado.response.usageMetadata?.totalTokenCount ?? 0,
+    };
+  }
+
   private buscarChunksRelevantes(consulta: string): string[] {
     const consultaMinusculas = consulta.toLowerCase();
     const puntuados = this.chunksCacheados.map((chunk) => {

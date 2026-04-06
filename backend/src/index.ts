@@ -21,6 +21,7 @@ import { CrearComanda } from "./aplicacion/casos-uso/crear-comanda";
 import { ActualizarEstado } from "./aplicacion/casos-uso/actualizar-estado";
 import { ProcesarPago } from "./aplicacion/casos-uso/procesar-pago";
 import { ConsultarIa } from "./aplicacion/casos-uso/consultar-ia";
+import { SugerirUpsell } from "./aplicacion/casos-uso/sugerir-upsell";
 import { ObtenerMenu } from "./aplicacion/casos-uso/obtener-menu";
 import { ObtenerComandas } from "./aplicacion/casos-uso/obtener-comandas";
 import { AutenticarUsuario } from "./aplicacion/casos-uso/autenticar-usuario";
@@ -142,6 +143,7 @@ async function iniciar(): Promise<void> {
   const casoActualizarEstado = new ActualizarEstado(repositorioComanda, servicioEstadoComanda, servicioWebSocket, servicioN8n);
   const casoProcesarPago = new ProcesarPago(repositorioPago, repositorioComanda, servicioEstadoComanda, servicioWebSocket, servicioN8n);
   const casoConsultarIa = new ConsultarIa(servicioIa, repositorioHistorialIa);
+  const casoSugerirUpsell = new SugerirUpsell(servicioIa);
   const casoObtenerMenu = new ObtenerMenu(repositorioItemMenu);
   const casoObtenerComandas = new ObtenerComandas(repositorioComanda);
   const casoAutenticar = new AutenticarUsuario(repositorioUsuario, servicioHash, servicioToken);
@@ -154,7 +156,7 @@ async function iniciar(): Promise<void> {
   const controladorMenu = new ControladorMenu(casoObtenerMenu, repositorioItemMenu);
   const controladorMesa = new ControladorMesa(casoGestionarMesas);
   const controladorAuth = new ControladorAutenticacion(casoAutenticar);
-  const controladorIa = new ControladorIa(casoConsultarIa);
+  const controladorIa = new ControladorIa(casoConsultarIa, casoSugerirUpsell);
   const controladorUsuario = new ControladorUsuario(casoListarMozos);
   const controladorAnalytics = new ControladorAnalytics(casoObtenerAnalytics);
   const controladorPublico = new ControladorPublico(repositorioMesa, casoCrearComanda, servicioWebSocket);
