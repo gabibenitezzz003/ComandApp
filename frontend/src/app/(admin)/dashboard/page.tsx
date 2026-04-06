@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { usarEstadoAutenticacion } from "../../../estados/estado-autenticacion";
 import { usarEstadoComandas } from "../../../estados/estado-comandas";
 import { usarWebSocket } from "../../../hooks/usar-websocket";
@@ -46,11 +47,32 @@ export default function PaginaDashboard() {
       
       {/* SaaS Header */}
       <header className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           <div className="font-bold tracking-tight text-text-primary border-r border-[var(--border-subtle)] pr-4">
             ComandApp
           </div>
-          <span className="text-text-secondary text-sm font-medium">Dashboard Admin</span>
+          {/* Nav Tabs */}
+          <nav className="flex items-center gap-1">
+            {[
+              { href: "/dashboard",           label: "Inicio",          active: true },
+              { href: "/dashboard/mesas",     label: "Control Mesas" },
+              { href: "/dashboard/analytics", label: "Analytics" },
+            ].map((item) => (
+              <Link key={item.href} href={item.href} style={{
+                padding: "6px 14px",
+                borderRadius: "8px",
+                fontSize: "13px",
+                fontWeight: item.active ? 700 : 500,
+                color: item.active ? "#a78bfa" : "#6b7280",
+                background: item.active ? "rgba(167,139,250,0.1)" : "transparent",
+                border: item.active ? "1px solid rgba(167,139,250,0.3)" : "1px solid transparent",
+                textDecoration: "none",
+                transition: "all 0.2s",
+              }}>
+                {item.label}
+              </Link>
+            ))}
+          </nav>
         </div>
 
         <div className="flex items-center gap-6">

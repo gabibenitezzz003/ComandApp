@@ -39,8 +39,11 @@ import { crearRutasMesa } from "./presentacion/rutas/rutas-mesa";
 import { crearRutasAutenticacion } from "./presentacion/rutas/rutas-autenticacion";
 import { crearRutasIa } from "./presentacion/rutas/rutas-ia";
 import { crearRutasUsuario } from "./presentacion/rutas/rutas-usuario";
+import { crearRutasAnalytics } from "./presentacion/rutas/rutas-analytics";
 import { crearMiddlewareAutenticacion, crearMiddlewareRol } from "./presentacion/middlewares/middleware-autenticacion";
 import { middlewareErrores } from "./presentacion/middlewares/middleware-errores";
+import { ObtenerAnalytics } from "./aplicacion/casos-uso/obtener-analytics";
+import { ControladorAnalytics } from "./presentacion/controladores/controlador-analytics";
 
 function log(level: "info" | "warn" | "error", message: string, data?: Record<string, unknown>) {
   console.log(JSON.stringify({ level, message, timestamp: new Date().toISOString(), ...data }));
@@ -137,6 +140,7 @@ async function iniciar(): Promise<void> {
   const casoAutenticar = new AutenticarUsuario(repositorioUsuario, servicioHash, servicioToken);
   const casoGestionarMesas = new GestionarMesas(repositorioMesa);
   const casoListarMozos = new ListarMozos(repositorioUsuario);
+  const casoObtenerAnalytics = new ObtenerAnalytics(prisma);
 
   const controladorComanda = new ControladorComanda(casoCrearComanda, casoActualizarEstado, casoObtenerComandas);
   const controladorPago = new ControladorPago(casoProcesarPago);
@@ -145,6 +149,7 @@ async function iniciar(): Promise<void> {
   const controladorAuth = new ControladorAutenticacion(casoAutenticar);
   const controladorIa = new ControladorIa(casoConsultarIa);
   const controladorUsuario = new ControladorUsuario(casoListarMozos);
+  const controladorAnalytics = new ControladorAnalytics(casoObtenerAnalytics);
 
   const middlewareAuth = crearMiddlewareAutenticacion(servicioToken);
   const middlewareRolAdmin = crearMiddlewareRol("ADMIN");
@@ -156,6 +161,7 @@ async function iniciar(): Promise<void> {
   aplicacion.use("/api/mesas", crearRutasMesa(controladorMesa, middlewareAuth, middlewareRolAdmin));
   aplicacion.use("/api/usuarios", crearRutasUsuario(controladorUsuario, middlewareAuth, middlewareRolAdmin));
   aplicacion.use("/api/ia", limiterIa, crearRutasIa(controladorIa));
+  aplicacion.use("/api/analytics", crearRutasAnalytics(controladorAnalytics, middlewareAuth, middlewareRolAdmin));
 
   aplicacion.use(middlewareErrores);
 
