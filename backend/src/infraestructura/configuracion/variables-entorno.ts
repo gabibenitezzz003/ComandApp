@@ -1,11 +1,12 @@
 import { z } from "zod";
 
 const esquemaVariables = z.object({
-  DATABASE_URL: z.string().url(),
-  PUERTO: z.string().default(process.env.PORT || "3001").transform(Number).pipe(z.number().int().positive()),
+  DATABASE_URL: z.string().min(1),
+  PORT: z.string().optional(),
+  PUERTO: z.string().optional(),
   JWT_SECRETO: z.string().min(10),
   GEMINI_API_KEY: z.string().min(1),
-  CORS_ORIGEN: z.string().transform((str) => str.split(",")),
+  CORS_ORIGEN: z.string().min(1),
   TOKENS_MAXIMO_SESION: z.string().transform(Number).pipe(z.number().int().positive()).default("5000"),
 });
 
@@ -14,9 +15,7 @@ type VariablesEntorno = z.infer<typeof esquemaVariables>;
 let variablesCache: VariablesEntorno | null = null;
 
 export function obtenerVariablesEntorno(): VariablesEntorno {
-  if (variablesCache) {
-    return variablesCache;
-  }
+  if (variablesCache) return variablesCache;
 
   const resultado = esquemaVariables.safeParse(process.env);
 
@@ -29,4 +28,12 @@ export function obtenerVariablesEntorno(): VariablesEntorno {
 
   variablesCache = resultado.data;
   return variablesCache;
+}
+
+export function obtenerPuerto(): number {
+  return Number(process.env.PORT) || Number(process.env.PUERTO) || 3001;
+}
+
+export function obtenerOrigenesCors(corsOrigen: string): string[] {
+  return corsOrigen.split(",").map((o) => o.trim());
 }

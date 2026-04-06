@@ -1,9 +1,10 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 import { createServer } from "http";
-import { obtenerVariablesEntorno } from "./infraestructura/configuracion/variables-entorno";
-import { obtenerClientePrisma, desconectarPrisma } from "./infraestructura/base-datos/conexion-prisma";
+import { obtenerVariablesEntorno, obtenerPuerto, obtenerOrigenesCors } from "./infraestructura/configuracion/variables-entorno";
+import { obtenerClientePrisma, conectarConRetry, desconectarPrisma } from "./infraestructura/base-datos/conexion-prisma";
 import { RepositorioMesaPrisma } from "./infraestructura/repositorios/repositorio-mesa-prisma";
 import { RepositorioUsuarioPrisma } from "./infraestructura/repositorios/repositorio-usuario-prisma";
 import { RepositorioItemMenuPrisma } from "./infraestructura/repositorios/repositorio-item-menu-prisma";
@@ -41,11 +42,54 @@ import { crearRutasUsuario } from "./presentacion/rutas/rutas-usuario";
 import { crearMiddlewareAutenticacion, crearMiddlewareRol } from "./presentacion/middlewares/middleware-autenticacion";
 import { middlewareErrores } from "./presentacion/middlewares/middleware-errores";
 
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled Rejection:", err);
+});
+
 async function iniciar(): Promise<void> {
   const variables = obtenerVariablesEntorno();
+
+  await conectarConRetry();
   const prisma = obtenerClientePrisma();
+
   const aplicacion = express();
   const servidorHttp = createServer(aplicacion);
+
+  const origenes = obtenerOrigenesCors(variables.CORS_ORIGEN);
+  aplicacion.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin || origenes.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error("CORS bloqueado"));
+      },
+    })
+  );
+  aplicacion.use(express.json());
+
+  aplicacion.use(rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Demasiadas solicitudes. Intenta en unos minutos." },
+  }));
+
+  aplicacion.use((_req, res, next) => {
+    res.setTimeout(10_000, () => {
+      res.status(408).json({ error: "Timeout: la solicitud tardo demasiado." });
+    });
+    next();
+  });
+
+  aplicacion.get("/health", (_req, res) => {
+    res.status(200).send("OK");
+  });
 
   const repositorioMesa = new RepositorioMesaPrisma(prisma);
   const repositorioUsuario = new RepositorioUsuarioPrisma(prisma);
@@ -57,7 +101,7 @@ async function iniciar(): Promise<void> {
   const servicioHash = new ServicioHashCrypto();
   const servicioToken = new ServicioTokenJwt(variables.JWT_SECRETO);
   const servicioIa = new ServicioIaGemini(variables.GEMINI_API_KEY, prisma);
-  const servicioWebSocket = new ServidorWebSocketImpl(servidorHttp, variables.CORS_ORIGEN);
+  const servicioWebSocket = new ServidorWebSocketImpl(servidorHttp, origenes);
   const servicioEstadoComanda = new ServicioEstadoComanda();
 
   const casoCrearComanda = new CrearComanda(repositorioComanda, repositorioItemMenu, repositorioMesa, servicioWebSocket);
@@ -81,9 +125,6 @@ async function iniciar(): Promise<void> {
   const middlewareAuth = crearMiddlewareAutenticacion(servicioToken);
   const middlewareRolAdmin = crearMiddlewareRol("ADMIN");
 
-  aplicacion.use(cors({ origin: variables.CORS_ORIGEN }));
-  aplicacion.use(express.json());
-
   aplicacion.use("/api/auth", crearRutasAutenticacion(controladorAuth));
   aplicacion.use("/api/comandas", crearRutasComanda(controladorComanda, middlewareAuth));
   aplicacion.use("/api/pagos", crearRutasPago(controladorPago, middlewareAuth));
@@ -94,24 +135,30 @@ async function iniciar(): Promise<void> {
 
   aplicacion.use(middlewareErrores);
 
-  await servicioIa.indexarMenu().catch(() => {});
+  setImmediate(() => {
+    servicioIa.indexarMenu().catch((e) => {
+      console.error("Error indexando menu IA:", e);
+    });
+  });
 
-  servidorHttp.listen(variables.PUERTO, "0.0.0.0", () => {
-    console.log(`📡 Servidor HTTP/WebSocket escuchando en puerto ${variables.PUERTO}`);
+  const puerto = obtenerPuerto();
+  servidorHttp.listen(puerto, "0.0.0.0", () => {
+    console.log(`🚀 ComandApp corriendo en puerto ${puerto}`);
   });
 
   const apagadoGraceful = async (): Promise<void> => {
-    servidorHttp.close();
-    await desconectarPrisma();
-    process.exit(0);
+    console.log("Cerrando servidor...");
+    servidorHttp.close(async () => {
+      await desconectarPrisma();
+      process.exit(0);
+    });
   };
 
   process.on("SIGTERM", apagadoGraceful);
   process.on("SIGINT", apagadoGraceful);
 }
 
-iniciar()
-  .then(() => console.log(`🚀 ComandApp corriendo en puerto ${process.env.PUERTO || 3001}`))
-  .catch(() => {
-    process.exit(1);
-  });
+iniciar().catch((error) => {
+  console.error("Error al iniciar la app:", error);
+  process.exit(1);
+});
