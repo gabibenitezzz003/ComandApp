@@ -1,0 +1,156 @@
+{
+  "name": "ComandApp — Notificaciones Automáticas",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "comandapp",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-entrada",
+      "name": "📡 ComandApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [240, 300],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.evento }}",
+              "operation": "equal",
+              "value2": "comanda.nueva"
+            }
+          ]
+        }
+      },
+      "id": "filter-nueva",
+      "name": "🆕 ¿Nueva Comanda?",
+      "type": "n8n-nodes-base.if",
+      "position": [460, 200],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.evento }}",
+              "operation": "equal",
+              "value2": "comanda.pagada"
+            }
+          ]
+        }
+      },
+      "id": "filter-pago",
+      "name": "💳 ¿Pago Procesado?",
+      "type": "n8n-nodes-base.if",
+      "position": [460, 400],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.evento }}",
+              "operation": "equal",
+              "value2": "comanda.incidencia"
+            }
+          ]
+        }
+      },
+      "id": "filter-incidencia",
+      "name": "🚨 ¿Incidencia?",
+      "type": "n8n-nodes-base.if",
+      "position": [460, 600],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "chatId": "TU_CHAT_ID_AQUI",
+        "text": "🍽️ *NUEVA COMANDA — Mesa {{ $json.body.mesa }}*\n\n🤵 Mozo: {{ $json.body.mozoNombre || 'Sin asignar' }}\n💰 Total: ${{ $json.body.total }}\n📝 Obs: {{ $json.body.observaciones || 'Sin observaciones' }}\n\n🕐 {{ $json.body.timestamp }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-nueva",
+      "name": "📱 Telegram — Nueva Comanda",
+      "type": "n8n-nodes-base.telegram",
+      "position": [700, 160],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "sheetId": "TU_SHEET_ID_AQUI",
+        "range": "Ventas!A:F",
+        "valueInputMode": "RAW",
+        "values": {
+          "values": [
+            [
+              "={{ $json.body.timestamp }}",
+              "={{ $json.body.comandaId }}",
+              "={{ $json.body.monto }}",
+              "={{ $json.body.metodo }}",
+              "registrado"
+            ]
+          ]
+        }
+      },
+      "id": "sheets-pago",
+      "name": "📊 Google Sheets — Registrar Venta",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [700, 360],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "chatId": "TU_CHAT_ID_AQUI",
+        "text": "🚨 *INCIDENCIA DETECTADA*\n\n⚠️ Comanda: {{ $json.body.comandaId }}\n🏠 Mesa: {{ $json.body.mesa || 'Desconocida' }}\n\nRevisión inmediata requerida.\n🕐 {{ $json.body.timestamp }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-incidencia",
+      "name": "🚨 Telegram — Alerta Incidencia",
+      "type": "n8n-nodes-base.telegram",
+      "position": [700, 560],
+      "typeVersion": 1
+    }
+  ],
+  "connections": {
+    "📡 ComandApp Webhook": {
+      "main": [
+        [
+          { "node": "🆕 ¿Nueva Comanda?", "type": "main", "index": 0 },
+          { "node": "💳 ¿Pago Procesado?", "type": "main", "index": 0 },
+          { "node": "🚨 ¿Incidencia?",    "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "🆕 ¿Nueva Comanda?": {
+      "main": [
+        [{ "node": "📱 Telegram — Nueva Comanda", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "💳 ¿Pago Procesado?": {
+      "main": [
+        [{ "node": "📊 Google Sheets — Registrar Venta", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "🚨 ¿Incidencia?": {
+      "main": [
+        [{ "node": "🚨 Telegram — Alerta Incidencia", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

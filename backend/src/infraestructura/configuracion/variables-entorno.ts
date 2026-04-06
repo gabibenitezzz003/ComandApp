@@ -8,6 +8,9 @@ const esquemaVariables = z.object({
   GEMINI_API_KEY: z.string().min(1),
   CORS_ORIGEN: z.string().min(1),
   TOKENS_MAXIMO_SESION: z.string().transform(Number).pipe(z.number().int().positive()).default("5000"),
+  // n8n (opcionales — si no están, el servicio opera en modo silencioso)
+  N8N_WEBHOOK_URL: z.string().url().optional(),
+  N8N_SECRET:      z.string().optional(),
 });
 
 type VariablesEntorno = z.infer<typeof esquemaVariables>;
@@ -36,4 +39,11 @@ export function obtenerPuerto(): number {
 
 export function obtenerOrigenesCors(corsOrigen: string): string[] {
   return corsOrigen.split(",").map((o) => o.trim());
+}
+
+export function obtenerConfigN8n(): { webhookUrl?: string; secret?: string } {
+  return {
+    webhookUrl: process.env.N8N_WEBHOOK_URL,
+    secret:     process.env.N8N_SECRET,
+  };
 }

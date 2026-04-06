@@ -2,6 +2,7 @@ import { RepositorioComanda } from "../../dominio/interfaces-repositorios/reposi
 import { RepositorioItemMenu } from "../../dominio/interfaces-repositorios/repositorio-item-menu";
 import { RepositorioMesa } from "../../dominio/interfaces-repositorios/repositorio-mesa";
 import { ServicioWebSocket } from "../interfaces-infraestructura/servicio-websocket";
+import { ServicioN8n } from "../../infraestructura/apis-externas/servicio-n8n";
 import { CrearComandaDto, RespuestaComandaDto } from "../dtos/dto-comanda";
 import { NoEncontrado, OperacionInvalida } from "../../dominio/excepciones/indice";
 
@@ -10,7 +11,8 @@ export class CrearComanda {
     private readonly repositorioComanda: RepositorioComanda,
     private readonly repositorioItemMenu: RepositorioItemMenu,
     private readonly repositorioMesa: RepositorioMesa,
-    private readonly servicioWebSocket: ServicioWebSocket
+    private readonly servicioWebSocket: ServicioWebSocket,
+    private readonly servicioN8n?: ServicioN8n
   ) {}
 
   async ejecutar(dto: CrearComandaDto): Promise<RespuestaComandaDto> {
@@ -43,6 +45,21 @@ export class CrearComanda {
     }
 
     this.servicioWebSocket.emitirNuevaComanda(comandaActualizada);
+
+    // 🤖 n8n: notificar nueva comanda (fire-and-forget)
+    this.servicioN8n?.disparar({
+      evento: "comanda.nueva",
+      timestamp: new Date().toISOString(),
+      mesa: mesa.numero,
+      mozoNombre: "",  // se enriquece en el webhook de n8n si se necesita
+      total: total,
+      items: itemsConPrecio.map((i) => ({
+        nombre: i.itemMenuId,
+        cantidad: i.cantidad,
+        subtotal: i.cantidad * i.precioUnitario,
+      })),
+      observaciones: dto.observaciones ?? null,
+    });
 
     return this.mapearARespuesta(comandaActualizada, mesa.numero);
   }

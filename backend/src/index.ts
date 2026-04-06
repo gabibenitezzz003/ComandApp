@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { createServer } from "http";
-import { obtenerVariablesEntorno, obtenerPuerto, obtenerOrigenesCors } from "./infraestructura/configuracion/variables-entorno";
+import { obtenerVariablesEntorno, obtenerPuerto, obtenerOrigenesCors, obtenerConfigN8n } from "./infraestructura/configuracion/variables-entorno";
 import { obtenerClientePrisma, conectarConRetry, desconectarPrisma } from "./infraestructura/base-datos/conexion-prisma";
 import { RepositorioMesaPrisma } from "./infraestructura/repositorios/repositorio-mesa-prisma";
 import { RepositorioUsuarioPrisma } from "./infraestructura/repositorios/repositorio-usuario-prisma";
@@ -14,6 +14,7 @@ import { RepositorioHistorialIaPrisma } from "./infraestructura/repositorios/rep
 import { ServicioHashCrypto } from "./infraestructura/apis-externas/servicio-hash-crypto";
 import { ServicioTokenJwt } from "./infraestructura/apis-externas/servicio-token-jwt";
 import { ServicioIaGemini } from "./infraestructura/apis-externas/servicio-ia-gemini";
+import { ServicioN8n } from "./infraestructura/apis-externas/servicio-n8n";
 import { ServidorWebSocketImpl } from "./infraestructura/websockets/servidor-websocket";
 import { ServicioEstadoComanda } from "./dominio/servicios-dominio/servicio-estado-comanda";
 import { CrearComanda } from "./aplicacion/casos-uso/crear-comanda";
@@ -131,9 +132,13 @@ async function iniciar(): Promise<void> {
   const servicioWebSocket = new ServidorWebSocketImpl(servidorHttp, origenes);
   const servicioEstadoComanda = new ServicioEstadoComanda();
 
-  const casoCrearComanda = new CrearComanda(repositorioComanda, repositorioItemMenu, repositorioMesa, servicioWebSocket);
-  const casoActualizarEstado = new ActualizarEstado(repositorioComanda, servicioEstadoComanda, servicioWebSocket);
-  const casoProcesarPago = new ProcesarPago(repositorioPago, repositorioComanda, servicioEstadoComanda, servicioWebSocket);
+  // n8n (opcional — opera en silencio si N8N_WEBHOOK_URL no está definida)
+  const { webhookUrl: n8nUrl, secret: n8nSecret } = obtenerConfigN8n();
+  const servicioN8n = new ServicioN8n(n8nUrl, n8nSecret);
+
+  const casoCrearComanda = new CrearComanda(repositorioComanda, repositorioItemMenu, repositorioMesa, servicioWebSocket, servicioN8n);
+  const casoActualizarEstado = new ActualizarEstado(repositorioComanda, servicioEstadoComanda, servicioWebSocket, servicioN8n);
+  const casoProcesarPago = new ProcesarPago(repositorioPago, repositorioComanda, servicioEstadoComanda, servicioWebSocket, servicioN8n);
   const casoConsultarIa = new ConsultarIa(servicioIa, repositorioHistorialIa);
   const casoObtenerMenu = new ObtenerMenu(repositorioItemMenu);
   const casoObtenerComandas = new ObtenerComandas(repositorioComanda);

@@ -2,6 +2,7 @@ import { RepositorioComanda } from "../../dominio/interfaces-repositorios/reposi
 import { RepositorioPago } from "../../dominio/interfaces-repositorios/repositorio-pago";
 import { ServicioEstadoComanda } from "../../dominio/servicios-dominio/servicio-estado-comanda";
 import { ServicioWebSocket } from "../interfaces-infraestructura/servicio-websocket";
+import { ServicioN8n } from "../../infraestructura/apis-externas/servicio-n8n";
 import { CrearPagoDto, RespuestaPagoDto } from "../dtos/dto-pago";
 import { NoEncontrado, OperacionInvalida } from "../../dominio/excepciones/indice";
 
@@ -10,7 +11,8 @@ export class ProcesarPago {
     private readonly repositorioPago: RepositorioPago,
     private readonly repositorioComanda: RepositorioComanda,
     private readonly servicioEstadoComanda: ServicioEstadoComanda,
-    private readonly servicioWebSocket: ServicioWebSocket
+    private readonly servicioWebSocket: ServicioWebSocket,
+    private readonly servicioN8n?: ServicioN8n
   ) {}
 
   async ejecutar(dto: CrearPagoDto): Promise<RespuestaPagoDto> {
@@ -38,6 +40,15 @@ export class ProcesarPago {
     await this.repositorioComanda.actualizarEstado(dto.comandaId, "PAGADO");
 
     this.servicioWebSocket.emitirPagoRegistrado(dto.comandaId);
+
+    // 🤖 n8n: registrar pago para Google Sheets / reporte
+    this.servicioN8n?.disparar({
+      evento: "comanda.pagada",
+      timestamp: new Date().toISOString(),
+      comandaId: dto.comandaId,
+      monto: comanda.total,
+      metodo: dto.metodo,
+    });
 
     return {
       id: pago.id,
