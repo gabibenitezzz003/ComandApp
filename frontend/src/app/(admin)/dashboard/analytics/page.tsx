@@ -30,6 +30,7 @@ export default function PaginaAnalytics() {
             {[
               { href: "/dashboard",           label: "Inicio" },
               { href: "/dashboard/mesas",     label: "Control Mesas" },
+              { href: "/dashboard/cocina",    label: "Cocina" },
               { href: "/dashboard/analytics", label: "Analytics", active: true },
             ].map((item) => (
               <Link key={item.href} href={item.href} style={{

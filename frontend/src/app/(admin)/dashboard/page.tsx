@@ -56,6 +56,7 @@ export default function PaginaDashboard() {
             {[
               { href: "/dashboard",           label: "Inicio",          active: true },
               { href: "/dashboard/mesas",     label: "Control Mesas" },
+              { href: "/dashboard/cocina",    label: "Cocina" },
               { href: "/dashboard/analytics", label: "Analytics" },
             ].map((item) => (
               <Link key={item.href} href={item.href} style={{

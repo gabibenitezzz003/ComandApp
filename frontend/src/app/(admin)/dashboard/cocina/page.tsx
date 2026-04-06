@@ -1,19 +1,17 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { usarEstadoAutenticacion } from "../../../../estados/estado-autenticacion";
 import { usarEstadoComandas } from "../../../../estados/estado-comandas";
 import { usarWebSocket } from "../../../../hooks/usar-websocket";
 import { unirseAlTablero } from "../../../../servicios/websocket";
-import { ControlMesas } from "../../../../componentes/admin/control-mesas";
 import { FormularioLogin } from "../../../../componentes/compartidos/formulario-login";
-import Link from "next/link";
+import { KdsPanel } from "../../../../componentes/admin/kds-panel";
 
-export default function PaginaControlMesas() {
+export default function PaginaCocina() {
   const { usuario, cargarDesdeStorage, cerrarSesion } = usarEstadoAutenticacion();
-  const { comandas, cargarTodas } = usarEstadoComandas();
-  const router = useRouter();
+  const { comandas, cargarTodas, actualizarComanda } = usarEstadoComandas();
 
   usarWebSocket();
 
@@ -29,13 +27,13 @@ export default function PaginaControlMesas() {
   if (!usuario) {
     return (
       <div className="flex min-h-screen items-center justify-center px-4 bg-[var(--bg-main)]">
-        <FormularioLogin titulo="Acceso Administración" />
+        <FormularioLogin titulo="Acceso Administración / Cocina" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] flex flex-col">
+    <div className="min-h-screen bg-[var(--bg-main)] flex flex-col overflow-hidden">
       {/* Header */}
       <header className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-6">
@@ -43,19 +41,19 @@ export default function PaginaControlMesas() {
           {/* Nav Tabs */}
           <nav className="flex items-center gap-1">
             {[
-              { href: "/dashboard",          label: "Inicio" },
-              { href: "/dashboard/mesas",    label: "Control Mesas", active: true },
-              { href: "/dashboard/cocina",    label: "Cocina" },
-              { href: "/dashboard/analytics",label: "Analytics" },
+              { href: "/dashboard",           label: "Inicio" },
+              { href: "/dashboard/mesas",     label: "Control Mesas" },
+              { href: "/dashboard/cocina",    label: "Cocina", active: true },
+              { href: "/dashboard/analytics", label: "Analytics" },
             ].map((item) => (
               <Link key={item.href} href={item.href} style={{
                 padding: "6px 14px",
                 borderRadius: "8px",
                 fontSize: "13px",
                 fontWeight: item.active ? 700 : 500,
-                color: item.active ? "#a78bfa" : "#6b7280",
-                background: item.active ? "rgba(167,139,250,0.1)" : "transparent",
-                border: item.active ? "1px solid rgba(167,139,250,0.3)" : "1px solid transparent",
+                color: item.active ? "#3b82f6" : "#6b7280", // Azul para destacarlo de Mánager
+                background: item.active ? "rgba(59,130,246,0.1)" : "transparent",
+                border: item.active ? "1px solid rgba(59,130,246,0.3)" : "1px solid transparent",
                 textDecoration: "none",
                 transition: "all 0.2s",
               }}>
@@ -67,7 +65,7 @@ export default function PaginaControlMesas() {
         <div className="flex items-center gap-6">
           <div className="flex flex-col items-end">
             <span className="text-text-primary text-sm font-medium">{usuario.nombre}</span>
-            <span className="text-text-muted text-xs uppercase tracking-widest">{usuario.rol}</span>
+            <span className="text-text-muted text-xs uppercase tracking-widest">KITCHEN DISPLAY (KDS)</span>
           </div>
           <button onClick={cerrarSesion} className="text-text-muted hover:text-red-400 text-sm font-medium transition-colors">
             Cerrar Sesión
@@ -75,20 +73,22 @@ export default function PaginaControlMesas() {
         </div>
       </header>
 
-      {/* Main */}
-      <main className="flex-1 max-w-[1400px] mx-auto w-full p-6 lg:p-10">
-        <div className="flex items-center justify-between mb-8">
+      {/* Main KDS Canvas */}
+      <main className="flex-1 w-full p-4 lg:p-6 flex flex-col max-h-[calc(100vh-73px)]">
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <div>
-            <h1 className="text-2xl font-bold text-text-primary tracking-tight">Control de Mesas</h1>
-            <p className="text-text-muted text-sm mt-1">Vista en tiempo real del salón — 50 mesas</p>
+            <h1 className="text-2xl font-bold text-text-primary tracking-tight">KDS: Despacho Principal</h1>
           </div>
-          <span className="flex items-center gap-2 text-xs font-semibold text-emerald-400 bg-emerald-900/30 border border-emerald-800 px-3 py-1.5 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            Live
+          {/* Live indicator */}
+          <span className="flex items-center gap-2 text-xs font-semibold text-blue-400 bg-blue-900/30 border border-blue-800 px-3 py-1.5 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+            SINC EXTREMA
           </span>
         </div>
 
-        <ControlMesas comandas={comandas} />
+        <div className="flex-1 overflow-hidden">
+            <KdsPanel comandas={comandas} actualizarComanda={actualizarComanda} />
+        </div>
       </main>
     </div>
   );
