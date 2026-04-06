@@ -42,12 +42,16 @@ import { crearRutasUsuario } from "./presentacion/rutas/rutas-usuario";
 import { crearMiddlewareAutenticacion, crearMiddlewareRol } from "./presentacion/middlewares/middleware-autenticacion";
 import { middlewareErrores } from "./presentacion/middlewares/middleware-errores";
 
+function log(level: "info" | "warn" | "error", message: string, data?: Record<string, unknown>) {
+  console.log(JSON.stringify({ level, message, timestamp: new Date().toISOString(), ...data }));
+}
+
 process.on("uncaughtException", (err) => {
-  console.error("Uncaught Exception:", err);
+  log("error", "uncaught_exception", { error: String(err), stack: err.stack });
 });
 
 process.on("unhandledRejection", (err) => {
-  console.error("Unhandled Rejection:", err);
+  log("error", "unhandled_rejection", { error: String(err) });
 });
 
 async function iniciar(): Promise<void> {
@@ -72,17 +76,37 @@ async function iniciar(): Promise<void> {
   );
   aplicacion.use(express.json());
 
-  aplicacion.use(rateLimit({
+  const limiterGeneral = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: 200,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: "Demasiadas solicitudes. Intenta en unos minutos." },
-  }));
+  });
+
+  const limiterAuth = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Demasiados intentos de login. Espera unos minutos." },
+  });
+
+  const limiterIa = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Demasiadas consultas IA. Intenta en unos minutos." },
+  });
+
+  aplicacion.use("/api", limiterGeneral);
 
   aplicacion.use((_req, res, next) => {
-    res.setTimeout(10_000, () => {
-      res.status(408).json({ error: "Timeout: la solicitud tardo demasiado." });
+    res.setTimeout(20_000, () => {
+      if (!res.headersSent) {
+        res.status(408).json({ error: "Timeout: la solicitud tardo demasiado." });
+      }
     });
     next();
   });
@@ -125,13 +149,13 @@ async function iniciar(): Promise<void> {
   const middlewareAuth = crearMiddlewareAutenticacion(servicioToken);
   const middlewareRolAdmin = crearMiddlewareRol("ADMIN");
 
-  aplicacion.use("/api/auth", crearRutasAutenticacion(controladorAuth));
+  aplicacion.use("/api/auth", limiterAuth, crearRutasAutenticacion(controladorAuth));
   aplicacion.use("/api/comandas", crearRutasComanda(controladorComanda, middlewareAuth));
   aplicacion.use("/api/pagos", crearRutasPago(controladorPago, middlewareAuth));
   aplicacion.use("/api/menu", crearRutasMenu(controladorMenu, middlewareAuth, middlewareRolAdmin));
   aplicacion.use("/api/mesas", crearRutasMesa(controladorMesa, middlewareAuth, middlewareRolAdmin));
   aplicacion.use("/api/usuarios", crearRutasUsuario(controladorUsuario, middlewareAuth, middlewareRolAdmin));
-  aplicacion.use("/api/ia", crearRutasIa(controladorIa));
+  aplicacion.use("/api/ia", limiterIa, crearRutasIa(controladorIa));
 
   aplicacion.use(middlewareErrores);
 
@@ -143,11 +167,11 @@ async function iniciar(): Promise<void> {
 
   const puerto = obtenerPuerto();
   servidorHttp.listen(puerto, "0.0.0.0", () => {
-    console.log(`🚀 ComandApp corriendo en puerto ${puerto}`);
+    log("info", "server_started", { port: puerto, origins: origenes });
   });
 
   const apagadoGraceful = async (): Promise<void> => {
-    console.log("Cerrando servidor...");
+    log("info", "server_shutting_down");
     servidorHttp.close(async () => {
       await desconectarPrisma();
       process.exit(0);
@@ -159,6 +183,6 @@ async function iniciar(): Promise<void> {
 }
 
 iniciar().catch((error) => {
-  console.error("Error al iniciar la app:", error);
+  log("error", "startup_failed", { error: String(error), stack: error?.stack });
   process.exit(1);
 });

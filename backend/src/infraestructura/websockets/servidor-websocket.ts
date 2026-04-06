@@ -11,7 +11,12 @@ export class ServidorWebSocketImpl implements ServicioWebSocket {
       cors: {
         origin: origenCors,
         methods: ["GET", "POST"],
+        credentials: true,
       },
+      transports: ["websocket", "polling"],
+      allowUpgrades: true,
+      pingTimeout: 30000,
+      pingInterval: 25000,
     });
 
     this.configurarConexiones();
