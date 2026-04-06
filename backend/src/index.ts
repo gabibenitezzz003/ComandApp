@@ -96,7 +96,9 @@ async function iniciar(): Promise<void> {
 
   await servicioIa.indexarMenu().catch(() => {});
 
-  servidorHttp.listen(variables.PUERTO, () => {});
+  servidorHttp.listen(variables.PUERTO, "0.0.0.0", () => {
+    console.log(`📡 Servidor HTTP/WebSocket escuchando en puerto ${variables.PUERTO}`);
+  });
 
   const apagadoGraceful = async (): Promise<void> => {
     servidorHttp.close();

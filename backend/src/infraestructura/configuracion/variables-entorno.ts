@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const esquemaVariables = z.object({
   DATABASE_URL: z.string().url(),
-  PUERTO: z.string().transform(Number).pipe(z.number().int().positive()),
+  PUERTO: z.string().default(process.env.PORT || "3001").transform(Number).pipe(z.number().int().positive()),
   JWT_SECRETO: z.string().min(10),
   GEMINI_API_KEY: z.string().min(1),
   CORS_ORIGEN: z.string().transform((str) => str.split(",")),
