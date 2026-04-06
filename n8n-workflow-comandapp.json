@@ -1,5 +1,5 @@
 {
-  "name": "ComandApp — Notificaciones Automáticas",
+  "name": "ComandApp — Master Workflow (KDS, QR & Pagos)",
   "nodes": [
     {
       "parameters": {
@@ -9,9 +9,9 @@
         "options": {}
       },
       "id": "webhook-entrada",
-      "name": "📡 ComandApp Webhook",
+      "name": "📡 ComandApp Master Webhook",
       "type": "n8n-nodes-base.webhook",
-      "position": [240, 300],
+      "position": [100, 400],
       "typeVersion": 1
     },
     {
@@ -27,9 +27,50 @@
         }
       },
       "id": "filter-nueva",
-      "name": "🆕 ¿Nueva Comanda?",
+      "name": "🆕 Nueva Comanda",
       "type": "n8n-nodes-base.if",
-      "position": [460, 200],
+      "position": [360, 200],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.evento }}",
+              "operation": "equal",
+              "value2": "comanda.estado_cambiado"
+            },
+            {
+              "value1": "={{ $json.body.estadoNuevo }}",
+              "operation": "equal",
+              "value2": "LISTO_PARA_SERVIR"
+            }
+          ]
+        }
+      },
+      "id": "filter-kds-listo",
+      "name": "👨‍🍳 KDS Finalizó Pedido",
+      "type": "n8n-nodes-base.if",
+      "position": [360, 400],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.body.evento }}",
+              "operation": "equal",
+              "value2": "cliente.llamado"
+            }
+          ]
+        }
+      },
+      "id": "filter-qr-llama",
+      "name": "🔔 Cliente Llama Mozo (QR)",
+      "type": "n8n-nodes-base.if",
+      "position": [360, 600],
       "typeVersion": 1
     },
     {
@@ -45,41 +86,51 @@
         }
       },
       "id": "filter-pago",
-      "name": "💳 ¿Pago Procesado?",
+      "name": "💳 Pago Registrado",
       "type": "n8n-nodes-base.if",
-      "position": [460, 400],
+      "position": [360, 800],
       "typeVersion": 1
     },
     {
       "parameters": {
-        "conditions": {
-          "string": [
-            {
-              "value1": "={{ $json.body.evento }}",
-              "operation": "equal",
-              "value2": "comanda.incidencia"
-            }
-          ]
-        }
-      },
-      "id": "filter-incidencia",
-      "name": "🚨 ¿Incidencia?",
-      "type": "n8n-nodes-base.if",
-      "position": [460, 600],
-      "typeVersion": 1
-    },
-    {
-      "parameters": {
-        "chatId": "TU_CHAT_ID_AQUI",
-        "text": "🍽️ *NUEVA COMANDA — Mesa {{ $json.body.mesa }}*\n\n🤵 Mozo: {{ $json.body.mozoNombre || 'Sin asignar' }}\n💰 Total: ${{ $json.body.total }}\n📝 Obs: {{ $json.body.observaciones || 'Sin observaciones' }}\n\n🕐 {{ $json.body.timestamp }}",
+        "chatId": "1198175903",
+        "text": "🍽️ *NUEVA COMANDA — Mesa {{ $json.body.mesa }}*\n\n🤵 Origen: {{ $json.body.observaciones && $json.body.observaciones.includes('QR') ? '📱 Cliente Vía QR' : $json.body.mozoNombre }}\n💰 Total: ${{ $json.body.total }}\n📝 Obs: {{ $json.body.observaciones || 'Sin observaciones' }}\n\n🕐 {{ $json.body.timestamp }}",
         "additionalFields": {
           "parse_mode": "Markdown"
         }
       },
       "id": "telegram-nueva",
-      "name": "📱 Telegram — Nueva Comanda",
+      "name": "📱 TG: Alerta Pedido",
       "type": "n8n-nodes-base.telegram",
-      "position": [700, 160],
+      "position": [620, 160],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "chatId": "1198175903",
+        "text": "🔥 *¡PEDIDO LISTO EN COCINA!* \n\n🏃‍♂️ Mesa: {{ $json.body.mesa }}\n📝 Comanda ID: {{ $json.body.comandaId }}\n\nEl pedido (KDS) terminó su preparación y está esperando ser entregado.\n🕐 {{ $json.body.timestamp }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-kds-listo",
+      "name": "📱 TG: KDS Listo Para Servir",
+      "type": "n8n-nodes-base.telegram",
+      "position": [620, 360],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "chatId": "1198175903",
+        "text": "🔔 *ASISTENCIA REQUERIDA (MENÚ QR)*\n\n🙋‍♂️ El cliente de la *Mesa {{ $json.body.mesa || '?' }}* está llamando al mozo.\n🕐 {{ $json.body.timestamp }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "telegram-qr-llama",
+      "name": "📱 TG: Cliente Necesita Mozo",
+      "type": "n8n-nodes-base.telegram",
+      "position": [620, 560],
       "typeVersion": 1
     },
     {
@@ -101,51 +152,44 @@
         }
       },
       "id": "sheets-pago",
-      "name": "📊 Google Sheets — Registrar Venta",
+      "name": "📊 Sheets: Registrar Venta",
       "type": "n8n-nodes-base.googleSheets",
-      "position": [700, 360],
-      "typeVersion": 1
-    },
-    {
-      "parameters": {
-        "chatId": "TU_CHAT_ID_AQUI",
-        "text": "🚨 *INCIDENCIA DETECTADA*\n\n⚠️ Comanda: {{ $json.body.comandaId }}\n🏠 Mesa: {{ $json.body.mesa || 'Desconocida' }}\n\nRevisión inmediata requerida.\n🕐 {{ $json.body.timestamp }}",
-        "additionalFields": {
-          "parse_mode": "Markdown"
-        }
-      },
-      "id": "telegram-incidencia",
-      "name": "🚨 Telegram — Alerta Incidencia",
-      "type": "n8n-nodes-base.telegram",
-      "position": [700, 560],
+      "position": [620, 760],
       "typeVersion": 1
     }
   ],
   "connections": {
-    "📡 ComandApp Webhook": {
+    "📡 ComandApp Master Webhook": {
       "main": [
         [
-          { "node": "🆕 ¿Nueva Comanda?", "type": "main", "index": 0 },
-          { "node": "💳 ¿Pago Procesado?", "type": "main", "index": 0 },
-          { "node": "🚨 ¿Incidencia?",    "type": "main", "index": 0 }
+          { "node": "🆕 Nueva Comanda", "type": "main", "index": 0 },
+          { "node": "👨‍🍳 KDS Finalizó Pedido", "type": "main", "index": 0 },
+          { "node": "🔔 Cliente Llama Mozo (QR)", "type": "main", "index": 0 },
+          { "node": "💳 Pago Registrado", "type": "main", "index": 0 }
         ]
       ]
     },
-    "🆕 ¿Nueva Comanda?": {
+    "🆕 Nueva Comanda": {
       "main": [
-        [{ "node": "📱 Telegram — Nueva Comanda", "type": "main", "index": 0 }],
+        [{ "node": "📱 TG: Alerta Pedido", "type": "main", "index": 0 }],
         []
       ]
     },
-    "💳 ¿Pago Procesado?": {
+    "👨‍🍳 KDS Finalizó Pedido": {
       "main": [
-        [{ "node": "📊 Google Sheets — Registrar Venta", "type": "main", "index": 0 }],
+        [{ "node": "📱 TG: KDS Listo Para Servir", "type": "main", "index": 0 }],
         []
       ]
     },
-    "🚨 ¿Incidencia?": {
+    "🔔 Cliente Llama Mozo (QR)": {
       "main": [
-        [{ "node": "🚨 Telegram — Alerta Incidencia", "type": "main", "index": 0 }],
+        [{ "node": "📱 TG: Cliente Necesita Mozo", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "💳 Pago Registrado": {
+      "main": [
+        [{ "node": "📊 Sheets: Registrar Venta", "type": "main", "index": 0 }],
         []
       ]
     }

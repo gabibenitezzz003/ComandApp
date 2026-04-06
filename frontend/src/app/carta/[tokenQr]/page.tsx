@@ -149,7 +149,7 @@ export default function MenuPublicoCarta() {
       await fetch(`${URL_BASE}/publico/mesas/${tokenQr}/llamar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tipo: "mozo" })
+        body: JSON.stringify({ tipo: "mozo", numeroMesa: mesa?.numero })
       });
       alert("👨‍🍳 ¡El mozo está en camino!");
     } catch {
