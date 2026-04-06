@@ -33,6 +33,7 @@ import { ControladorMesa } from "./presentacion/controladores/controlador-mesa";
 import { ControladorAutenticacion } from "./presentacion/controladores/controlador-autenticacion";
 import { ControladorIa } from "./presentacion/controladores/controlador-ia";
 import { ControladorUsuario } from "./presentacion/controladores/controlador-usuario";
+import { ControladorPublico } from "./presentacion/controladores/controlador-publico";
 import { crearRutasComanda } from "./presentacion/rutas/rutas-comanda";
 import { crearRutasPago } from "./presentacion/rutas/rutas-pago";
 import { crearRutasMenu } from "./presentacion/rutas/rutas-menu";
@@ -41,6 +42,7 @@ import { crearRutasAutenticacion } from "./presentacion/rutas/rutas-autenticacio
 import { crearRutasIa } from "./presentacion/rutas/rutas-ia";
 import { crearRutasUsuario } from "./presentacion/rutas/rutas-usuario";
 import { crearRutasAnalytics } from "./presentacion/rutas/rutas-analytics";
+import { crearRutasPublicas } from "./presentacion/rutas/rutas-publicas";
 import { crearMiddlewareAutenticacion, crearMiddlewareRol } from "./presentacion/middlewares/middleware-autenticacion";
 import { middlewareErrores } from "./presentacion/middlewares/middleware-errores";
 import { ObtenerAnalytics } from "./aplicacion/casos-uso/obtener-analytics";
@@ -155,6 +157,7 @@ async function iniciar(): Promise<void> {
   const controladorIa = new ControladorIa(casoConsultarIa);
   const controladorUsuario = new ControladorUsuario(casoListarMozos);
   const controladorAnalytics = new ControladorAnalytics(casoObtenerAnalytics);
+  const controladorPublico = new ControladorPublico(repositorioMesa, casoCrearComanda, servicioWebSocket);
 
   const middlewareAuth = crearMiddlewareAutenticacion(servicioToken);
   const middlewareRolAdmin = crearMiddlewareRol("ADMIN");
@@ -167,6 +170,7 @@ async function iniciar(): Promise<void> {
   aplicacion.use("/api/usuarios", crearRutasUsuario(controladorUsuario, middlewareAuth, middlewareRolAdmin));
   aplicacion.use("/api/ia", limiterIa, crearRutasIa(controladorIa));
   aplicacion.use("/api/analytics", crearRutasAnalytics(controladorAnalytics, middlewareAuth, middlewareRolAdmin));
+  aplicacion.use("/api/publico", crearRutasPublicas(controladorPublico));
 
   aplicacion.use(middlewareErrores);
 

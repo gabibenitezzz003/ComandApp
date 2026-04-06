@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Comanda, EstadoComanda } from "../../../tipos/tipos-comanda";
+import { Comanda, EstadoComanda } from "../../tipos/tipos-comanda";
 
 // ────────────────────────────────────────────────────────────────
 // Helper: Tiempo Transcurrido
@@ -96,7 +96,7 @@ function TarjetaTicket({
 
       {/* Lista de Items */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "8px", background: "rgba(10,13,28,0.4)", borderRadius: "8px", padding: "12px" }}>
-        {comanda.items?.map((item, i) => (
+        {comanda.items?.map((item: any, i: number) => (
           <div key={item.id || i} style={{ borderBottom: i === (comanda.items?.length || 1) - 1 ? "none" : "1px dashed #374151", paddingBottom: i === (comanda.items?.length || 1) - 1 ? 0 : "8px" }}>
             <div style={{ display: "flex", gap: "8px", alignItems: "flex-start" }}>
               <span style={{ fontSize: "14px", fontWeight: 800, color: "#a78bfa", width: "24px" }}>

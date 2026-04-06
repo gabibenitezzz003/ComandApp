@@ -87,7 +87,13 @@ export default function PaginaCocina() {
         </div>
 
         <div className="flex-1 overflow-hidden">
-            <KdsPanel comandas={comandas} actualizarComanda={actualizarComanda} />
+            <KdsPanel comandas={comandas} actualizarComanda={async (id, estado) => {
+              try {
+                await import("../../../../servicios/cliente-api").then(m => m.clienteApi.put(`/comandas/${id}/estado`, { estado }));
+              } catch (e) {
+                console.error("Error al avanzar comanda", e);
+              }
+            }} />
         </div>
       </main>
     </div>
