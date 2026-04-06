@@ -9,7 +9,8 @@ export type EventoN8n =
   | "comanda.nueva"
   | "comanda.estado_cambiado"
   | "comanda.pagada"
-  | "comanda.incidencia";
+  | "comanda.incidencia"
+  | "cliente.llamado";
 
 export interface PayloadComandaNueva {
   evento: "comanda.nueva";
@@ -46,11 +47,19 @@ export interface PayloadIncidencia {
   mozoNombre?: string;
 }
 
+export interface PayloadLlamado {
+  evento: "cliente.llamado";
+  timestamp: string;
+  mesa?: number;
+  tipo: string; // "mozo" | "cuenta"
+}
+
 export type PayloadN8n =
   | PayloadComandaNueva
   | PayloadEstadoCambiado
   | PayloadPagada
-  | PayloadIncidencia;
+  | PayloadIncidencia
+  | PayloadLlamado;
 
 export class ServicioN8n {
   private readonly webhookUrl: string | null;

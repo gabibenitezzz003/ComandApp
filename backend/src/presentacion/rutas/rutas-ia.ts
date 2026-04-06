@@ -2,8 +2,7 @@ import { Router } from "express";
 import { ControladorIa } from "../controladores/controlador-ia";
 
 export function crearRutasIa(
-  controlador: ControladorIa,
-  middlewareAuth?: any // Hacemos opcional por ahora si ya está en index
+  controlador: ControladorIa
 ): Router {
   const enrutador = Router();
 

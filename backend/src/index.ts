@@ -159,7 +159,7 @@ async function iniciar(): Promise<void> {
   const controladorIa = new ControladorIa(casoConsultarIa, casoSugerirUpsell);
   const controladorUsuario = new ControladorUsuario(casoListarMozos);
   const controladorAnalytics = new ControladorAnalytics(casoObtenerAnalytics);
-  const controladorPublico = new ControladorPublico(repositorioMesa, casoCrearComanda, servicioWebSocket);
+  const controladorPublico = new ControladorPublico(repositorioMesa, casoCrearComanda, servicioWebSocket, servicioN8n);
 
   const middlewareAuth = crearMiddlewareAutenticacion(servicioToken);
   const middlewareRolAdmin = crearMiddlewareRol("ADMIN");

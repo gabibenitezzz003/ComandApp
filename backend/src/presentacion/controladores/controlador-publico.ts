@@ -2,13 +2,15 @@ import { Request, Response, NextFunction } from "express";
 import { RepositorioMesa } from "../../dominio/interfaces-repositorios/repositorio-mesa";
 import { CrearComanda } from "../../aplicacion/casos-uso/crear-comanda";
 import { ServicioWebSocket } from "../../aplicacion/interfaces-infraestructura/servicio-websocket";
+import { ServicioN8n } from "../../infraestructura/apis-externas/servicio-n8n";
 import { esquemaCrearComanda } from "../../aplicacion/validadores/validador-comanda";
 
 export class ControladorPublico {
   constructor(
     private readonly repositorioMesa: RepositorioMesa,
     private readonly crearComanda: CrearComanda,
-    private readonly servicioWebSocket: ServicioWebSocket
+    private readonly servicioWebSocket: ServicioWebSocket,
+    private readonly servicioN8n?: ServicioN8n
   ) {}
 
   async obtenerInfoMesa(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -77,10 +79,20 @@ export class ControladorPublico {
   terminar_llamado(req: Request, res: Response, next: NextFunction): void {
       try {
         const tokenQr = String(req.params.tokenQr);
-        const { tipo } = req.body; // "mozo" | "cuenta"
+        const { tipo, numeroMesa } = req.body; // "mozo" | "cuenta"
         
         // Simplemente emitimos un evento WS a la sala del restaurante para que las pantallas titilen
         this.servicioWebSocket.emitirAMesa(tokenQr, "LLAMADO_CLIENTE", { tipo, tokenQr });
+
+        // Avisamos a n8n para que mande Telegram al Mánager/Mozo si lo desean
+        if (this.servicioN8n) {
+          this.servicioN8n.disparar({
+            evento: "cliente.llamado",
+            timestamp: new Date().toISOString(),
+            tipo: tipo || "mozo",
+            mesa: numeroMesa
+          });
+        }
         
         res.json({ exito: true, mensaje: "Llamado emitido exitosamente" });
       } catch (error) {
