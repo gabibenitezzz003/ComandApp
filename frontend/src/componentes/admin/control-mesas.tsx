@@ -15,6 +15,7 @@ interface MesaUI {
   comandaActiva: Comanda | null;
   mozoNombre: string | null;
   mesaId: string | null;
+  tokenQr: string | null;
 }
 
 interface Props {
@@ -31,7 +32,7 @@ function buildMesasUI(mesas: Mesa[], comandas: Comanda[]): MesaUI[] {
     const numero = i + 1;
     const mesa = mesas.find((m) => m.numero === numero);
     if (!mesa) {
-      return { numero, estado: "libre" as EstadoMesa, comandaActiva: null, mozoNombre: null, mesaId: null };
+      return { numero, estado: "libre" as EstadoMesa, comandaActiva: null, mozoNombre: null, mesaId: null, tokenQr: null };
     }
     const comandasActivas = comandas.filter(
       (c) => c.mesaId === mesa.id && c.estado !== "PAGADO"
@@ -49,6 +50,7 @@ function buildMesasUI(mesas: Mesa[], comandas: Comanda[]): MesaUI[] {
       comandaActiva: comandasActivas[0] ?? null,
       mozoNombre: mesa.mozoAsignado?.nombre ?? null,
       mesaId: mesa.id,
+      tokenQr: mesa.tokenQr,
     };
   });
 }
@@ -169,6 +171,12 @@ function SidebarDetalle({ mesa, onClose }: { mesa: MesaUI; onClose: () => void }
         </h3>
         <button onClick={onClose} style={{ color: "#6b7280", background: "none", border: "none", cursor: "pointer", fontSize: "18px" }}>✕</button>
       </div>
+
+      {mesa.tokenQr && (
+        <a href={`/carta/${mesa.tokenQr}`} target="_blank" rel="noreferrer" style={{ display: "block", background: "rgba(59,130,246,0.15)", border: "1px solid rgba(59,130,246,0.4)", color: "#60a5fa", padding: "10px", borderRadius: "10px", fontSize: "13px", fontWeight: "bold", textDecoration: "none", textAlign: "center", marginTop: "-6px" }}>
+          📱 Abrir Menú QR Digital
+        </a>
+      )}
 
       {/* Estado */}
       <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
