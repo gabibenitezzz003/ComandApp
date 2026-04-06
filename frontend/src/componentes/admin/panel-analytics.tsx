@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { clienteApi } from "../../../servicios/cliente-api";
+import { clienteApi } from "../../servicios/cliente-api";
 
 // ────────────────────────────────────────────────────────────────
 // Types

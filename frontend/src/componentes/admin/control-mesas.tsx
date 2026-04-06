@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Comanda, Mesa } from "../../../tipos/tipos-comanda";
-import { clienteApi } from "../../../servicios/cliente-api";
+import { Comanda, Mesa } from "../../tipos/tipos-comanda";
+import { clienteApi } from "../../servicios/cliente-api";
 
 // ────────────────────────────────────────────────────────────────
 // Types
