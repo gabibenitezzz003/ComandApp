@@ -101,11 +101,13 @@ export class ServicioN8n {
     })
       .then((res) => {
         if (!res.ok) {
-          console.warn(`[n8n] Webhook respondió ${res.status} para evento: ${payload.evento}`);
+          console.warn(`[n8n] ❌ Webhook respondió ${res.status} para evento: ${payload.evento} en URL: ${url}`);
+        } else {
+          console.info(`[n8n] ✅ Evento '${payload.evento}' enviado exitosamente a n8n.`);
         }
       })
       .catch((err) => {
-        console.warn(`[n8n] Error al disparar evento ${payload.evento}:`, err instanceof Error ? err.message : err);
+        console.error(`[n8n] 🔥 Error crítico al disparar evento ${payload.evento}:`, err instanceof Error ? err.message : err);
       });
   }
 

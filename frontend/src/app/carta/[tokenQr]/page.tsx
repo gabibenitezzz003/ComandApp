@@ -49,6 +49,8 @@ export default function MenuPublicoCarta() {
   const [enviando, setEnviando] = useState(false);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const [pedidoExito, setPedidoExito] = useState(false);
+  const [llamandoMozo, setLlamandoMozo] = useState(false);
+  const [mozoAlerta, setMozoAlerta] = useState(false);
 
   // Carga inicial
   useEffect(() => {
@@ -93,16 +95,14 @@ export default function MenuPublicoCarta() {
 
   // Acciones Carrito
   const agregarAlCarrito = (item: ItemMenu) => {
-    const notas = prompt(`¿Alguna nota especial para "${item.nombre}"? (Opcional):`);
-    if (notas === null) return; // canceló
-
+    // Eliminamos el prompt que bloquea navegadores móviles
     setCarrito(prev => [...prev, {
       id: Date.now().toString(),
       menuId: item.id,
       nombre: item.nombre,
       precio: item.precio,
       cantidad: 1,
-      notas: notas.trim()
+      notas: ""
     }]);
   };
 
@@ -135,25 +135,30 @@ export default function MenuPublicoCarta() {
         setCarrito([]);
         setTimeout(() => setPedidoExito(false), 5000);
       } else {
-        alert("Error al enviar el pedido: " + data.error?.mensaje);
+        setErrorStatus("Error al enviar el pedido: " + data.error?.mensaje);
       }
     } catch {
-      alert("Error de red al enviar el pedido");
+      setErrorStatus("Error de red al enviar el pedido");
     } finally {
       setEnviando(false);
     }
   };
 
   const llamarAlMozo = async () => {
+    if (llamandoMozo) return;
+    setLlamandoMozo(true);
     try {
       await fetch(`${URL_BASE}/publico/mesas/${tokenQr}/llamar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ tipo: "mozo", numeroMesa: mesa?.numero })
       });
-      alert("👨‍🍳 ¡El mozo está en camino!");
+      setMozoAlerta(true);
+      setTimeout(() => setMozoAlerta(false), 5000);
     } catch {
-      alert("Error al llamar al mozo");
+      setErrorStatus("No pudimos contactar al mozo. Reintenta.");
+    } finally {
+      setLlamandoMozo(false);
     }
   };
 
@@ -199,16 +204,23 @@ export default function MenuPublicoCarta() {
             {!mesa?.activa && <span style={{ color: "#f87171" }}>(No cobrada aún)</span>}
           </div>
         </div>
-        <button onClick={llamarAlMozo} style={{
-          background: "rgba(59,130,246,0.15)",
-          color: "#60a5fa",
-          border: "1px solid rgba(59,130,246,0.3)",
-          borderRadius: "99px",
-          padding: "8px 16px",
-          fontSize: "13px",
-          fontWeight: 700,
-          cursor: "pointer"
-        }}>🔔 Llamar Mozo</button>
+        <button 
+          onClick={llamarAlMozo} 
+          disabled={llamandoMozo}
+          style={{
+            background: llamandoMozo ? "rgba(255,255,255,0.1)" : "rgba(59,130,246,0.15)",
+            color: llamandoMozo ? "#94a3b8" : "#60a5fa",
+            border: `1px solid ${llamandoMozo ? "rgba(255,255,255,0.1)" : "rgba(59,130,246,0.3)"}`,
+            borderRadius: "99px",
+            padding: "8px 16px",
+            fontSize: "13px",
+            fontWeight: 700,
+            cursor: llamandoMozo ? "wait" : "pointer",
+            transition: "all 0.3s ease"
+          }}
+        >
+          {llamandoMozo ? "⏳ Llamando..." : "🔔 Llamar Mozo"}
+        </button>
       </header>
 
       {/* Hero */}
@@ -217,10 +229,17 @@ export default function MenuPublicoCarta() {
         <p style={{ margin: 0, color: "#94a3b8", fontSize: "14px" }}>Toca cualquier plato para agregarlo a tu orden.</p>
       </div>
 
-      {/* Success interactivo */}
+      {/* Success interactivo Pedido */}
       {pedidoExito && (
-        <div style={{ margin: "20px", padding: "16px", background: "rgba(16,185,129,0.15)", border: "1px solid #34d399", borderRadius: "12px", color: "#34d399", textAlign: "center", fontWeight: 700 }}>
+        <div style={{ margin: "20px", padding: "16px", background: "rgba(16,185,129,0.15)", border: "1px solid #34d399", borderRadius: "12px", color: "#34d399", textAlign: "center", fontWeight: 700, animation: "fadeIn 0.5s ease" }}>
           👨‍🍳 ¡Marchando! Tu pedido fue enviado a la cocina.
+        </div>
+      )}
+
+      {/* Success interactivo Mozo */}
+      {mozoAlerta && (
+        <div style={{ margin: "20px", padding: "16px", background: "rgba(59,130,246,0.15)", border: "1px solid #60a5fa", borderRadius: "12px", color: "#60a5fa", textAlign: "center", fontWeight: 700, animation: "fadeIn 0.5s ease" }}>
+          🙋‍♂️ ¡Mozo avisado! Está en camino a tu mesa.
         </div>
       )}
 
